@@ -1,0 +1,300 @@
+---
+title: "Project Sandeep C"
+author: "Shyni"
+date: "12/22/2019"
+output: html_document
+---
+
+Set Library
+```{r}
+library(readr)
+library(tidyverse)
+library(lubridate)
+library(sqldf)
+
+```
+
+
+
+Import Data
+```{r}
+setwd("~/Desktop/Job related/Freelance Sandeep C /Data")
+FS_1020_1026_00 <- read_csv("fahrzeiten_soll_ist_20191020_20191026.csv")
+FS_1027_1102_00 <- read_csv("fahrzeiten_soll_ist_20191027_20191102.csv")
+FS_1103_1109_00 <- read_csv("fahrzeiten_soll_ist_20191103_20191109.csv")
+FS_1110_1116_00 <- read_csv("fahrzeiten_soll_ist_20191110_20191116.csv")
+Location_of_stop_00 <- read_csv("haltepunkt.csv")
+stop_00  <- read_csv("haltestelle.csv")
+
+```
+
+Data Wrangling
+```{r}
+FS_1020_1026 <-  FS_1020_1026_00
+FS_1027_1102 <-  FS_1027_1102_00
+FS_1103_1109<-  FS_1103_1109_00
+FS_1110_1116 <-  FS_1110_1116_00 
+Location_of_stop <-  Location_of_stop_00
+stop  <-  stop_00
+
+
+names(FS_1020_1026_00)
+colnames(FS_1020_1026) <- c("Line", "Direction", "Operational_Date", 
+                            "vehicle", "course", "seq_from", 
+                            "halt_from", "Location_of_point_from", "Short_name_of_stop_from", 
+                            "Date_from", "Target_on_from", "Actual_on_from",
+                            "Target_asof_from", "Actual_asof_from", "seq_after",
+                            "halt_after", "Location_of_point_after", "Short_name_of_stop_after",
+                            "Date_after", "Target_on_after", "Actual_on_after",
+                            "Target_asof_after", "Actual_asof_after", "journey_id",
+                            "guideway_id", "guideway_no", "guideway_typ",
+                            "Short_name_of_guideway", "guideway_name", "circulation_from",
+                            "Stop_id_from", "Stop_id_after", "Location_of_stop_id_from",
+                            "Location_of_stop_id_after")
+
+colnames(FS_1027_1102) <- c("Line", "Direction", "Operational_Date", 
+                            "vehicle", "course", "seq_from", 
+                            "halt_from", "Location_of_point_from", "Short_name_of_stop_from", 
+                            "Date_from", "Target_on_from", "Actual_on_from",
+                            "Target_asof_from", "Actual_asof_from", "seq_after",
+                            "halt_after", "Location_of_point_after", "Short_name_of_stop_after",
+                            "Date_after", "Target_on_after", "Actual_on_after",
+                            "Target_asof_after", "Actual_asof_after", "journey_id",
+                            "guideway_id", "guideway_no", "guideway_typ",
+                            "Short_name_of_guideway", "guideway_name", "circulation_from",
+                            "Stop_id_from", "Stop_id_after", "Location_of_stop_id_from",
+                            "Location_of_stop_id_after")
+
+
+colnames(FS_1103_1109) <- c("Line", "Direction", "Operational_Date", 
+                            "vehicle", "course", "seq_from", 
+                            "halt_from", "Location_of_point_from", "Short_name_of_stop_from", 
+                            "Date_from", "Target_on_from", "Actual_on_from",
+                            "Target_asof_from", "Actual_asof_from", "seq_after",
+                            "halt_after", "Location_of_point_after", "Short_name_of_stop_after",
+                            "Date_after", "Target_on_after", "Actual_on_after",
+                            "Target_asof_after", "Actual_asof_after", "journey_id",
+                            "guideway_id", "guideway_no", "guideway_typ",
+                            "Short_name_of_guideway", "guideway_name", "circulation_from",
+                            "Stop_id_from", "Stop_id_after", "Location_of_stop_id_from",
+                            "Location_of_stop_id_after")
+
+colnames(FS_1110_1116) <- c("Line", "Direction", "Operational_Date", 
+                            "vehicle", "course", "seq_from", 
+                            "halt_from", "Location_of_point_from", "Short_name_of_stop_from", 
+                            "Date_from", "Target_on_from", "Actual_on_from",
+                            "Target_asof_from", "Actual_asof_from", "seq_after",
+                            "halt_after", "Location_of_point_after", "Short_name_of_stop_after",
+                            "Date_after", "Target_on_after", "Actual_on_after",
+                            "Target_asof_after", "Actual_asof_after", "journey_id",
+                            "guideway_id", "guideway_no", "guideway_typ",
+                            "Short_name_of_guideway", "guideway_name", "circulation_from",
+                            "Stop_id_from", "Stop_id_after", "Location_of_stop_id_from",
+                            "Location_of_stop_id_after")
+
+ 
+
+names(Location_of_stop)
+colnames(Location_of_stop) <- c("Loaction_of_stop_id", "Location_of_stop", "Stop_id", "GPS_latitude", "GPS_Longitude", "GPS_Bearing", "Location_of_stop_actual_active")
+
+names(stop)
+colnames(stop) <- c("stop_id", "stop_diva", "Short_name_stop", "stop_name", "stop_actual_active")
+
+
+#Only want to examine trips on line 7 (in both directions)
+
+FS_1020_1026_07 <- FS_1020_1026 %>% filter(Line ==  7)
+FS_1027_1102_07 <- FS_1027_1102 %>% filter(Line ==  7)
+FS_1103_1109_07 <- FS_1103_1109 %>% filter(Line ==  7)
+FS_1110_1116_07 <- FS_1110_1116 %>% filter(Line ==  7)
+
+#Only interested in trips from Monday to Friday
+
+FS_1020_1026_07$Operational_Date <- as.POSIXct(FS_1020_1026_07$Operational_Date, format = "%d.%m.%y")
+FS_1027_1102_07$Operational_Date <- as.POSIXct(FS_1027_1102_07$Operational_Date, format = "%d.%m.%y")
+FS_1103_1109_07$Operational_Date <- as.POSIXct(FS_1103_1109_07$Operational_Date, format = "%d.%m.%y")
+FS_1110_1116_07$Operational_Date <- as.POSIXct(FS_1110_1116_07$Operational_Date, format = "%d.%m.%y")
+
+FS_1020_1026_07_01 <- FS_1020_1026_07 %>% mutate(weekdy = weekdays(FS_1020_1026_07$Operational_Date))
+FS_1027_1102_07_01 <- FS_1027_1102_07 %>% mutate(weekdy = weekdays(FS_1027_1102_07$Operational_Date))
+FS_1103_1109_07_01 <- FS_1103_1109_07 %>% mutate(weekdy = weekdays(FS_1103_1109_07$Operational_Date)) 
+FS_1110_1116_07_01 <- FS_1110_1116_07 %>% mutate(weekdy = weekdays(FS_1110_1116_07$Operational_Date)) 
+
+`%notin%` <- Negate(`%in%`)
+FS_1020_1026_07_02 <- FS_1020_1026_07_01 %>% filter(weekdy  %notin% c("Saturday", "Sunday"))
+FS_1027_1102_07_02 <- FS_1027_1102_07_01 %>% filter(weekdy  %notin% c("Saturday", "Sunday"))
+FS_1103_1109_07_02 <- FS_1103_1109_07_01 %>% filter(weekdy  %notin% c("Saturday", "Sunday"))
+FS_1110_1116_07_02 <- FS_1110_1116_07_01 %>% filter(weekdy  %notin% c("Saturday", "Sunday"))
+
+#Only the most frequent route remains in direction 1 and 2 in data record, removing depot journey, #detours etc.
+
+sqldf("select distinct(guideway_name) from FS_1020_1026_07_02 ") 
+FS_1020_1026_07_03 <- FS_1020_1026_07_02[- grep("via", FS_1020_1026_07_02$guideway_name),]
+FS_1020_1026_07_04 <- FS_1020_1026_07_03[- grep("für", FS_1020_1026_07_03$guideway_name),]
+FS_1020_1026_07_05 <- FS_1020_1026_07_04[- grep("Ausfahrt", FS_1020_1026_07_04$guideway_name),]
+
+ 
+sqldf("select distinct(guideway_name) from FS_1027_1102_07_02 ") 
+FS_1027_1102_07_03 <- FS_1027_1102_07_02[- grep("via", FS_1027_1102_07_02$guideway_name),]
+FS_1027_1102_07_04 <- FS_1027_1102_07_03[- grep("für", FS_1027_1102_07_03$guideway_name),]
+FS_1027_1102_07_05 <- FS_1027_1102_07_04[- grep("Ausfahrt", FS_1027_1102_07_04$guideway_name),]
+
+
+sqldf("select distinct(guideway_name) from FS_1103_1109_07_02 ") 
+FS_1103_1109_07_03 <- FS_1103_1109_07_02[- grep("via", FS_1103_1109_07_02$guideway_name),]
+FS_1103_1109_07_04 <- FS_1103_1109_07_03[- grep("für", FS_1103_1109_07_03$guideway_name),]
+FS_1103_1109_07_05 <- FS_1103_1109_07_04[- grep("Ausfahrt", FS_1103_1109_07_04$guideway_name),]
+
+
+
+sqldf("select distinct(guideway_name) from FS_1110_1116_07_02 ") 
+FS_1110_1116_07_03 <- FS_1110_1116_07_02[- grep("via", FS_1110_1116_07_02$guideway_name),]
+FS_1110_1116_07_04 <- FS_1110_1116_07_03[- grep("für", FS_1110_1116_07_03$guideway_name),]
+FS_1110_1116_07_05 <- FS_1110_1116_07_04[- grep("Ausfahrt", FS_1110_1116_07_04$guideway_name),]
+
+
+# Update stops without character Zürich or Zch
+stop_01 <- stop
+ 
+stop_01$stop_name <-  (gsub("Zürich", "", stop_01$stop_name))
+stop_01$stop_name <-  (gsub("Zch", "", stop_01$stop_name))
+stop_01$stop_name <-  (gsub("^.", "", stop_01$stop_name))
+
+# Join all the 4 main files
+FS <- rbind(FS_1020_1026_07_05, FS_1027_1102_07_05, FS_1103_1109_07_05, FS_1110_1116_07_05 )
+
+FS_01 <- sqldf("select * from FS a, stop_01 b where a.Short_name_of_stop_from = b.Short_name_stop")
+
+#Changing col names of Stop_from 
+names(FS_01)[names(FS_01) == 'stop_name'] <- 'Short_name_stop_from'
+
+FS_02 <- sqldf("select * from FS_01 a, stop_01 b where a.Short_name_of_stop_after = b.Short_name_stop")
+
+#Changing col names of Stop_after 
+names(FS_02)[names(FS_02) == 'stop_name'] <- 'Short_name_stop_after'
+
+#departure delays actual-from-target from 
+#negative means early , positive means late
+ 
+FS_03 <- FS_02 %>% mutate(depdelayf = Actual_asof_from - Target_asof_from)
+ 
+FS_04 <- FS_03 %>% mutate(depdelaya = Actual_asof_after - Target_asof_after)
+```
+
+
+
+Visualization
+```{r}
+#b
+names(FS_02)
+FS_02$Direction <- as.character(FS_02$Direction)
+FS_02 %>%
+  group_by(Line, Short_name_stop_from, Direction) %>%
+  summarise(counts = n()) %>% 
+  ggplot(aes(x = reorder(Short_name_stop_from,counts),  y = counts, fill = Direction )) + geom_bar(stat = 'identity' , position = "dodge") + ggtitle("Stops of Line 7 per direction in City of Zurich")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 65, hjust = 1) )  +  xlab("Halt From") + ylab(" Count")  
+
+
+
+
+#b
+names(FS_02)
+ 
+FS_02 %>%
+  group_by(Line, Short_name_stop_after, Direction) %>%
+  summarise(counts = n()) %>% 
+  ggplot(aes(x = reorder(Short_name_stop_after,counts),  y = counts, fill = Direction )) + geom_bar(stat = 'identity' , position = "dodge") + ggtitle("Stops of Line 7 per direction in City of Zurich")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 65, hjust = 1) )  +  xlab("Halt After") + ylab(" Count")  
+
+
+sqldf("select distinct(Short_name_stop_after) from FS_02 where guideway_typ = '2'")
+
+#c
+ 
+ g <- FS_04 %>% select(Short_name_of_stop_from, depdelayf, Direction, Short_name_stop_from)
+ h <- FS_04 %>% select(Short_name_of_stop_after, depdelaya, Direction, Short_name_stop_after)
+ 
+ g1 <- unique(g)
+ h1 <- unique(h)
+ 
+ g1 %>%
+  ggplot(aes(x = depdelayf, col = as.factor(Direction))) +
+  geom_line(stat = "density") +
+  facet_wrap(~Short_name_stop_from) + xlab("Departure Delay From") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1)) + ggtitle("Departure Delays for each stop from for Line 7 per direction in City of Zurich") 
+ 
+ 
+ 
+```
+
+
+
+Departure Delay From
+Line 1:
+Departure Delay is uniform among all stops with a delay between 0-100s. Universität Irchel has highest  frequency of being on time.
+
+Line 2:
+Departure Delay is uniform among all stops with a delay between 0-100s.
+
+
+
+```{r}
+ 
+  h1 %>%
+  ggplot(aes(x = depdelaya, col = as.factor(Direction))) +
+  geom_line(stat = "density") +
+  facet_wrap(~Short_name_stop_after) + xlab("Departure Delay After") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1)) + ggtitle("Departure Delays for each stop after for Line 7 per direction in City of Zurich") 
+  
+```
+
+
+
+Departure Delay After
+Line 1:
+Departure Delay is uniform among all stops with a delay between 0-100s. Depot 7 Irchel has lowest frequency of being on time.
+Line 2:
+Departure Delay is uniform among all stops with a delay between 0-100s. Bahnhof Enge is the only and has the lowest frequency being on time.  
+
+
+
+```{r}
+#d
+# consider only Billoweg stop
+ BL <- sqldf("select * from FS_04 where short_name_stop_after like '%Billoweg%'  or short_name_stop_from like '%Billoweg%' ")
+
+#create new variable that specidied hour for target departure times
+BL_01 <- BL %>% mutate(Target_from_hour = round(Target_asof_from/3600, 0), Target_after_hour = round(Target_asof_after/3600, 0) )
+
+#Only consider trips between 9:00 and 15:00
+BL_02 <- BL_01 %>%  filter(Target_from_hour %in% (9:15) & Target_after_hour %in% (9:15) )
+
+ 
+ 
+BL  <-sqldf("select * from BL_02 where Short_name_stop_from like '%Brunaustrasse%' or  Short_name_stop_after like '%Brunaustrasse%'")
+BL_11 <- sqldf("select * from BL where Direction = 1")
+BL_22 <- sqldf("select * from BL where Direction = 2")
+
+# Keep only the first row for each duplicate of z$id; this row will have the
+# largest value for z$var
+BL_09 <- BL_11[!duplicated(BL_11$Target_from_hour),]
+BL_10 <- BL_22[!duplicated(BL_22$Target_from_hour),]
+ 
+
+# t-test for one trip
+ t.test(BL_09$depdelayf, BL_09$depdelaya)
+t.test(BL_10$depdelayf, BL_10$depdelaya)
+
+```
+
+
+
+The t-test shows that there is no statistical difference between Delay in departure from and after for both directions, which implies that the assumption that the departure delays are systematically greater in Direction 1 than Direction 2.
+The only problem in using all the trips is you cannot make sense of which trip to and fro has caused a delay if there is a significant difference in mean.
+
+
+
+
+
+e) In the t test in d) we are using data of one trip per hour in each direction and since there are no differences it implies that it is not subsequently adding any delays.
+
+
+
+
+
